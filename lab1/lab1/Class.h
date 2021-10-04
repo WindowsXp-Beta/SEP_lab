@@ -18,6 +18,7 @@ public:
     void addStudent(const Student &st);
     StudentWrapper &getStudentWrapper(const std::string &studentId);
     double getAvgScore();
+    double outputScore(string id);
 };
 
 #endif // CLASS_H_

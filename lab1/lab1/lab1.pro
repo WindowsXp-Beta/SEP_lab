@@ -10,8 +10,10 @@ SOURCES += \
 
 HEADERS += \
     Class.h \
+    Error.h \
     Student.h
 
 DISTFILES += \
+    BugReport.txt \
     Classes.txt \
     Students.txt

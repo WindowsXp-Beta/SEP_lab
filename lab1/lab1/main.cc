@@ -1,8 +1,12 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include "Class.h"
+#include "Error.h"
 #include "Student.h"
+
+#define Debugx
 
 using namespace std;
 
@@ -15,6 +19,8 @@ private:
     void inputScore();
     void printAvgScore();
     void printGpa();
+    Class* getClass(const string &class_name);
+    Student* getStudent(const string &student_id);
 
 public:
     AppX();
@@ -52,9 +58,13 @@ void AppX::loadFiles()
     Class *cl = nullptr;
 
     // Open a file as a input stream.
-    ifstream stfile("./Students.txt");
-
-    while (getline(stfile, line)) {
+#ifdef Debug
+    ifstream studentfile("../Students.txt");
+#endif
+#ifdef Debugx
+    ifstream studentfile("./Students.txt");
+#endif
+    while (getline(studentfile, line)) {
         if (line.empty()) // It's an empty line.
             continue;
         if (line[0] == '#') // It's a comment line.
@@ -81,55 +91,127 @@ void AppX::loadFiles()
 
         // TODO: uncomment next lines after implementing class Undergraduate
         // and Graduate.
-        /*
+
         if (bufv[3] == "U")
-            st = new Undergraduate(bufv[0], bufv[1], bufv[2]);
+            st = new Undergraduate(bufv[1], bufv[2], bufv[0]);
         else
-            st = new Graduate(bufv[0], bufv[1], bufv[2]);
-        */
+            st = new Graduate(bufv[1], bufv[2], bufv[0]);
 
         studentVec.push_back(st);
     }
-    stfile.close();
+    studentfile.close();
 
     // TODO: load data from ./Classes.txt and push objects to the vector.
     // Hint: how is student information read?
+#ifdef Debug
+    ifstream classFile("../Classes.txt");
+#endif
+#ifdef Debugx
+    ifstream classFile("./Classes.txt");
+#endif
+    bufv.clear();
+
+    while (getline(classFile,line)) {
+        if(line.empty()) {
+            bufv.clear();
+            continue;
+        }
+        if (line[0] == '#')
+            continue;
+
+        pos1 = 0;
+        if (line[0] == 'C') {
+            pos2 = line.find(':' , pos1+1);
+            bufv.push_back(line.substr(pos2 + 1, string::npos));
+            continue;
+        }
+
+        else if (line[0] == 'P') {
+            pos2 = line.find(':', pos1 + 1);
+            bufv.push_back(line.substr(pos2 + 1, string::npos));
+            cl = new Class(bufv[0], bufv[1][0] - '0');
+            classVec.push_back(cl);
+            continue;
+        }
+
+        else {
+           Student* stu;
+           for (auto & it : studentVec) {
+               if (it->id == line) stu = it;
+           }
+           cl->addStudent(*stu);
+           stu->addclass(cl);
+           continue;
+        }
+    }
+    classFile.close();
+    bufv.clear();
 }
 
 void AppX::inputScore()
 {
     // TODO: implement inputScore.
     // Hint: Take a look at printAvgScore().
+    string class_name;
+    Class  *cl;
+
+    while (true) {
+        cout << "Please input the class name (or input q to quit): ";
+        cin >> class_name;
+        if (class_name == "q")
+            break;
+
+        try {
+            cl = getClass(class_name);
+        } catch (XAppError& e){
+            cout << e.getErrorMsg();
+            continue;
+        }
+
+        string student_id;
+
+        while (true) {
+            cout << "Please input the student's id (or input q to quit): ";
+            cin >> student_id;
+            if (student_id == "q")
+                break;
+
+            try {
+                StudentWrapper &stu = cl->getStudentWrapper(student_id);
+                cout << stu.toString();
+
+                double score;
+                string input;
+
+                cout << "Please input the student's score:(or input q to quit)"<<endl;
+                cin >> input;
+                if (input == "q") continue;
+                else istringstream(input) >> score;
+
+                stu.setScore(score);
+            }  catch (XAppError &e) {
+                cout << e.getErrorMsg();
+                continue;
+            }
+        }
+    }
 }
 
 void AppX::printAvgScore()
 {
-    string sbuf;
-    Class *cl;
-    double avg;
-
+    string class_name;
     while (true) {
         cout << "Please input the class name (or input q to quit): ";
-        cin >> sbuf;
-        if (sbuf == "q")
+        cin >> class_name;
+        if (class_name == "q")
             break;
-
-        cl = nullptr;
-        for (vector<Class *>::iterator it = classVec.begin();
-             it != classVec.end();
-             ++it) {
-            if ((*it)->name == sbuf) {
-                cl = *it;
-                break;
-            }
-        }
-        if (cl == nullptr) {
-            cout << "No match class!" << endl;
+        try {
+            Class *cl = getClass(class_name);
+            printf( "The average score is: %.2f\n", cl -> getAvgScore());
+        } catch (XAppError &e) {
+            cout << e.getErrorMsg();
             continue;
         }
-
-        avg = cl->getAvgScore();
-        cout << "The average score is: " << avg << endl;
     }
 }
 
@@ -137,6 +219,23 @@ void AppX::printGpa()
 {
     // TODO: implement printGpa.
     // Hint: Take a look at printAvgScore().
+    while (true) {
+        string student_id;
+
+        cout << "Please input the student's id (or input q to quit):" << endl;
+        cin >> student_id;
+        if (student_id == "q")
+            break;
+
+        try {
+            Student *stu = getStudent(student_id);
+            cout << stu->toString();
+            printf ("GPA = %.2f\n", stu->getGrade());
+        } catch (XAppError &e){
+            cout << e.getErrorMsg();
+            continue;
+        }
+    }
 }
 
 int AppX::run()
@@ -159,10 +258,26 @@ int AppX::run()
         } else if (cmd == 'q') {
             break;
         } else {
-            cout << "Invalid command!\n" << endl;
+            cout << "Invalid command!\n";
         }
     }
     return 0;
+}
+
+Class *AppX::getClass(const string &class_name) {
+    for(auto &class_item : classVec){
+        if(class_item -> name == class_name)
+            return class_item;
+    }
+    throw XAppError("No match class!\n");
+}
+
+Student *AppX::getStudent(const string &student_id) {
+    for(auto &student_item : studentVec){
+        if(student_item -> id == student_id)
+            return student_item;
+    }
+    throw XAppError("No match student!\n");
 }
 
 int main()

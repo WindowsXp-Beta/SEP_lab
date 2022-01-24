@@ -1,16 +1,16 @@
 #include <iostream>
 #include <sstream>
+#include <cassert>
 #include "Editor.h"
+#include "error.h"
 
 using namespace std;
 
-Editor::Editor()
-{
-    buffer = new Buffer();
-}
+Editor::Editor() : currentLine(0), buffer(new Buffer()) {}
+
 Editor::~Editor()
 {
-    // TODO: Implement destructor
+    delete buffer;
 }
 
 void Editor::run()
@@ -25,8 +25,8 @@ void Editor::run()
             break;
         try {
             dispatchCmd(cmd);
-        } catch (const char *e) {
-            cout << "? " << e << endl;
+        } catch (std::exception &e) {
+            cout << "? " << e.what() << endl;
         } catch (const out_of_range &oor) {
             cout << "? " << oor.what() << endl;
         } catch (const range_error &re) {
@@ -38,6 +38,14 @@ void Editor::cmdAppend()
 {
     cout << "It's input mode now. Quit with a line with a single dot(.)" << endl;
     // TODO: finish cmdAppend.
+    while (true)
+    {
+        string text;
+        getline(cin, text);
+        if (text == ".")
+            break;
+        buffer->appendLine(text);
+    }
 }
 
 void Editor::cmdInsert()
@@ -53,7 +61,7 @@ void Editor::cmdInsert()
         if (firstLine) {
             buffer->insertLine(text);
             firstLine = false;
-        }  else {
+        } else {
             buffer->appendLine(text);
         }
     }
@@ -76,6 +84,8 @@ void Editor::cmdNumber(int start, int end)
 
 void Editor::cmdWrite(const string &filename)
 {
+    if (filename.empty())
+        throw EdException(EdException::Type::FileNameNotSpecified);
     buffer->writeToFile(filename);
 }
 
@@ -89,9 +99,12 @@ void Editor::dispatchCmd(const string &cmd)
         cmdInsert();
         return;
     }
-    if (cmd[0] == 'w' && cmd[1] == ' ') {
-        // TODO: call cmdWrite with proper arguments
-        return;
+    if (cmd[0] == 'w') {
+        if (cmd[1] == ' ') {
+            // TODO: call cmdWrite with proper arguments
+            cmdWrite(cmd.substr(2, string::npos));
+            return;
+        } else throw EdException(EdException::Type::FileNameNotSpecified);
     }
     // TODO: handle special case "1,$n".
     int start, end;
@@ -110,7 +123,8 @@ void Editor::dispatchCmd(const string &cmd)
         } else if (type == 'd') {
             cmdDelete(start, end);
             return;
-        }
-    }
-    throw "Bad/Unknown command";
+        } else throw EdException(EdException::Type::BadCommand);
+    } else if (cmd == "1,$n") {
+        cmdNumber(1, -1);
+    } else throw EdException(EdException::Type::BadCommand);
 }

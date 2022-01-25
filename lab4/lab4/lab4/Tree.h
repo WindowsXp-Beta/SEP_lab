@@ -25,13 +25,14 @@ private:
 
     TreeNode *left;
     TreeNode *right;
+//    int level_;
 
 public:
     /* methods */
     explicit TreeNode(int x = 0, int y = 0);
     int getX();  /* DO NOT CHANGE */
     int getY();  /* DO NOT CHANGE */
-    ~TreeNode(); /* DO NOT CHANGE */
+    ~TreeNode() = default; /* DO NOT CHANGE */
 };
 
 
@@ -43,12 +44,16 @@ private:
     TreeNode *root;
 
     void insert(int x, int y);
+    long long int distance(int x1, int y1, int x2, int y2);
+    void clear(TreeNode *node);
+    void create(vector<TreeNode* > &nodes, int l, int r, TreeNode **parent, int level);
 public:
     /* methods */
     BinaryDimonTree();          /* DO NOT CHANGE */
+    ~BinaryDimonTree();
     TreeNode *find_nearest_node(int x, int y);  /* DO NOT CHANGE */
 
-    void recur_search(TreeNode *cur, int x, int y, long long int &min_distance, TreeNode **guess);
+    void recur_search(TreeNode *cur, int x, int y, long long int &min_distance, TreeNode **guess, int level);
 
 };
 

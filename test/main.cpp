@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include "lab4/Tree.h"
+#include "Tree.h"
 
 using namespace std;
 
@@ -51,10 +51,10 @@ void run_testcase(string testcasename)
 int main()
 {
     cout << "The first group of test cases' results." << endl;
-    run_testcase("../1.txt");
+    run_testcase("1.txt");
 
-    cout << "The second group of test cases' results." << endl;
-    run_testcase("../2.txt");
-    run_testcase("../3.txt");
+//    cout << "The second group of test cases' results." << endl;
+//    run_testcase("../2.txt");
+//    run_testcase("../3.txt");
     return 0;
 }
